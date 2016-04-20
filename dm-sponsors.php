@@ -5,7 +5,7 @@ Plugin Name: DM Sponsors
 Plugin URI: http://www.designmissoula.com/
 Description: This is not just a plugin, it makes WordPress better.
 Author: Bradford Knowlton
-Version: 1.0.3
+Version: 1.0.4
 Author URI: http://bradknowlton.com/
 GitHub Plugin URI: https://github.com/DesignMissoula/DM-sponsors
 */
@@ -63,12 +63,12 @@ GitHub Plugin URI: https://github.com/DesignMissoula/DM-sponsors
     $args = array(
     'labels' => $labels,
     'hierarchical' => false,
-    'supports' => array( 'title', 'editor', 'excerpt', 'thumbnail', 'custom-fields' ), // 'author',
+    'supports' => array( 'title', 'thumbnail', 'custom-fields' ), // 'author', 'editor', 'excerpt',
     'taxonomies' => array( 'sponsor_levels' ),
     'public' => true,
     'show_ui' => true,
     'show_in_menu' => true,
-    'show_in_nav_menus' => true,
+    'show_in_nav_menus' => false,
     'publicly_queryable' => true,
     'exclude_from_search' => true,
     'has_archive' => false,
