@@ -5,7 +5,7 @@ Plugin Name: DM Sponsors
 Plugin URI: http://www.designmissoula.com/
 Description: This is not just a plugin, it makes WordPress better.
 Author: Bradford Knowlton
-Version: 1.0.2
+Version: 1.0.3
 Author URI: http://bradknowlton.com/
 GitHub Plugin URI: https://github.com/DesignMissoula/DM-sponsors
 */
@@ -13,21 +13,21 @@ GitHub Plugin URI: https://github.com/DesignMissoula/DM-sponsors
     add_action( 'init', 'register_taxonomy_sponsor_levels' );
     function register_taxonomy_sponsor_levels() {
     $labels = array(
-    'name' => _x( 'Sponsor Categories', 'sponsor_levels' ),
-    'singular_name' => _x( 'Sponsor Category', 'sponsor_levels' ),
-    'search_items' => _x( 'Search Sponsor Categories', 'sponsor_levels' ),
-    'popular_items' => _x( 'Popular Sponsor Categories', 'sponsor_levels' ),
-    'all_items' => _x( 'All Sponsor Categories', 'sponsor_levels' ),
-    'parent_item' => _x( 'Parent Sponsor Category', 'sponsor_levels' ),
-    'parent_item_colon' => _x( 'Parent Sponsor Category:', 'sponsor_levels' ),
-    'edit_item' => _x( 'Edit Sponsor Category', 'sponsor_levels' ),
-    'update_item' => _x( 'Update Sponsor Category', 'sponsor_levels' ),
-    'add_new_item' => _x( 'Add New Sponsor Category', 'sponsor_levels' ),
-    'new_item_name' => _x( 'New Sponsor Category', 'sponsor_levels' ),
+    'name' => _x( 'Sponsor Levels', 'sponsor_levels' ),
+    'singular_name' => _x( 'Sponsor Level', 'sponsor_levels' ),
+    'search_items' => _x( 'Search Sponsor Levels', 'sponsor_levels' ),
+    'popular_items' => _x( 'Popular Sponsor Levels', 'sponsor_levels' ),
+    'all_items' => _x( 'All Sponsor Levels', 'sponsor_levels' ),
+    'parent_item' => _x( 'Parent Sponsor Level', 'sponsor_levels' ),
+    'parent_item_colon' => _x( 'Parent Sponsor Level:', 'sponsor_levels' ),
+    'edit_item' => _x( 'Edit Sponsor Level', 'sponsor_levels' ),
+    'update_item' => _x( 'Update Sponsor Level', 'sponsor_levels' ),
+    'add_new_item' => _x( 'Add New Sponsor Level', 'sponsor_levels' ),
+    'new_item_name' => _x( 'New Sponsor Level', 'sponsor_levels' ),
     'separate_items_with_commas' => _x( 'Separate sponsor levels with commas', 'sponsor_levels' ),
     'add_or_remove_items' => _x( 'Add or remove sponsor levels', 'sponsor_levels' ),
     'choose_from_most_used' => _x( 'Choose from the most used sponsor levels', 'sponsor_levels' ),
-    'menu_name' => _x( 'Sponsor Categories', 'sponsor_levels' ),
+    'menu_name' => _x( 'Sponsor Levels', 'sponsor_levels' ),
     );
     $args = array(
     'labels' => $labels,
