@@ -5,7 +5,7 @@ Plugin Name: DM Sponsors
 Plugin URI: http://www.designmissoula.com/
 Description: This is not just a plugin, it makes WordPress better.
 Author: Bradford Knowlton
-Version: 1.0.7
+Version: 2.2.0
 Author URI: http://bradknowlton.com/
 GitHub Plugin URI: https://github.com/DesignMissoula/DM-sponsors
 */
@@ -62,7 +62,7 @@ function register_cpt_sponsor() {
 	);
 	$args = array(
 		'labels' => $labels,
-		'hierarchical' => false,
+		'hierarchical' => true,
 		'supports' => array( 'title', 'thumbnail', 'custom-fields' ), // 'author', 'editor', 'excerpt',
 		'taxonomies' => array( 'sponsor_levels' ),
 		'public' => true,
@@ -79,7 +79,157 @@ function register_cpt_sponsor() {
 		'capability_type' => 'post'
 	);
 	register_post_type( 'sponsor', $args );
+
+	$labels = array(
+		'name' => _x( 'Contacts', 'contact' ),
+		'singular_name' => _x( 'Contact', 'contact' ),
+		'add_new' => _x( 'Add New', 'contact' ),
+		'add_new_item' => _x( 'Add New Contact', 'contact' ),
+		'edit_item' => _x( 'Edit Contact', 'contact' ),
+		'new_item' => _x( 'New Contact', 'contact' ),
+		'view_item' => _x( 'View Contact', 'contact' ),
+		'search_items' => _x( 'Search Contacts', 'contact' ),
+		'not_found' => _x( 'No contacts found', 'contact' ),
+		'not_found_in_trash' => _x( 'No contacts found in Trash', 'contact' ),
+		'parent_item_colon' => _x( 'Parent Contact:', 'contact' ),
+		'menu_name' => _x( 'Contacts', 'contact' ),
+	);
+	$args = array(
+		'labels' => $labels,
+		'hierarchical' => false,
+		'supports' => array( 'title', 'page-attributes'  ), // 'author', 'editor', 'excerpt', 'thumbnail',  'custom-fields', 
+		'public' => true,
+		'show_ui' => true,
+		'show_in_menu' => true,
+		'show_in_nav_menus' => false,
+		'publicly_queryable' => false,
+		'exclude_from_search' => true,
+		'has_archive' => false,
+		'query_var' => true,
+		'can_export' => false,
+		'rewrite' => false,
+		'menu_icon' => 'dashicons-businessman',
+		'capability_type' => 'post'
+	);
+	register_post_type( 'contact', $args );	
+
+	new dm_contact_meta_box();
 }
+
+
+// Creating the widget
+class dm_contact_meta_box {
+
+	function __construct() {
+		add_action( 'admin_init', array( $this, 'admin_init' ) );
+		add_action( 'admin_menu', array( $this, 'remove_meta_box' ), 100 );
+		
+	}
+
+	function admin_init() {
+	    add_action( 'add_meta_boxes', array( $this, 'add_meta_boxes' ) );
+	    add_action( 'save_post', array( $this, 'save_post' ), 10);	    
+	  }
+
+	// Create the meta box
+	function add_meta_boxes() {
+	      add_meta_box(
+	          'select_item',
+	          'Enter Contact Details',
+	          array( $this, 'content' ),
+	          'contact',
+	          'normal',
+	          'high'
+	      );
+	}
+
+	// Create the meta box content
+	function content() {
+		global $post;
+		wp_nonce_field( basename( __FILE__ ), 'dm-sponsor_nonce' );
+	    $phone_number = get_post_meta( $post->ID, '_phone_number', true );
+	    $selected_item = get_post_meta($post->ID,'_selected_item', true);
+	    $static_args = array(
+	        'post_type' => 'sponsor', 
+	        'show_option_none' => 'Choose Sponsor Organization',
+	        'name' => 'selected_item',
+	        'id' => 'selected_item',
+	        'selected' => $selected_item
+	    );
+	    
+	    ?>
+		<p>
+	        <label for="selected_item" class="selected_item"><?php _e( 'Sponsor Organization', 'dm-sponsor' )?></label>
+	        <?php wp_dropdown_pages($static_args); ?>
+	    </p>
+	    <p>
+	        <label for="phone_number" class="prfx-row-title"><?php _e( 'Phone Number', 'dm-sponsor' )?></label>
+	        <input type="text" name="phone_number" id="phone_number" value="<?php if ( isset ( $phone_number ) ) echo $phone_number; ?>" />
+	    </p>
+	 
+	    <?php
+	   
+	}
+
+	// Save the selection
+	function save_post( $post_id ) {
+	    $selected_item = null;
+	    
+	    // Checks save status
+	    $is_autosave = wp_is_post_autosave( $post_id );
+	    $is_revision = wp_is_post_revision( $post_id );
+	    $is_valid_nonce = ( isset( $_POST[ 'dm-sponsor_nonce' ] ) && wp_verify_nonce( $_POST[ 'dm-sponsor_nonce' ], basename( __FILE__ ) ) ) ? 'true' : 'false';
+	 
+	    // Exits script depending on save status
+	    if ( $is_autosave || $is_revision || !$is_valid_nonce ) {
+	        return;
+	    }
+	 
+	    // Checks for input and sanitizes/saves if needed
+	    if( isset( $_POST[ 'phone_number' ] ) ) {
+	        update_post_meta( $post_id, '_phone_number', sanitize_text_field( $_POST[ 'phone_number' ] ) );
+	    
+	    }
+	    
+	    // your form data is in the $_POST array
+	    if ( isset( $_POST['selected_item'] ) && $_POST['selected_item'] ) {
+	        $selected_item = $_POST['selected_item'];     
+	        // then use the $post_id to save your post meta
+			update_post_meta( $post_id, '_selected_item', $selected_item );  	        
+	    }
+	    
+		
+	    
+	}
+	
+	/**
+	* Remove the WooThemes metabox on new page
+	* @since 1.15.2
+	* http://codex.gravityview.co/class-gravityview-theme-hooks-woothemes_8php_source.html
+	*/
+	public function remove_meta_box() {
+	 remove_meta_box( 'woothemes-settings', 'contact', 'normal' );	  
+	 remove_meta_box( 'woothemes-settings', 'sponsor', 'normal' );	  
+	
+	}
+	
+	// http://wordpress.stackexchange.com/questions/56104/get-list-of-registered-meta-boxes-and-removing-them
+	public function get_meta_boxes( $screen = null, $context = 'normal' ) {
+	    global $wp_meta_boxes;
+	
+	    if ( empty( $screen ) )
+	        $screen = get_current_screen();
+	    elseif ( is_string( $screen ) )
+	        $screen = convert_to_screen( $screen );
+	
+	    $page = $screen->id;
+	
+	    return $wp_meta_boxes[$page][$context];          
+	}
+
+}
+
+
 
 // Creating the widget
 class dm_sponsor_widget extends WP_Widget {
@@ -96,7 +246,7 @@ class dm_sponsor_widget extends WP_Widget {
 			array( 'description' => __( 'Widget To Show Off Sponsors', 'dm_widget_domain' ), )
 		);
 	}
-
+	
 	// Creating widget front-end
 	// This is where the action happens
 	public function widget( $args, $instance ) {
