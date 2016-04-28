@@ -5,7 +5,7 @@ Plugin Name: DM Sponsors
 Plugin URI: http://www.designmissoula.com/
 Description: This is not just a plugin, it makes WordPress better.
 Author: Bradford Knowlton
-Version: 2.2.0
+Version: 3.3.1
 Author URI: http://bradknowlton.com/
 GitHub Plugin URI: https://github.com/DesignMissoula/DM-sponsors
 */
@@ -63,13 +63,13 @@ function register_cpt_sponsor() {
 	$args = array(
 		'labels' => $labels,
 		'hierarchical' => true,
-		'supports' => array( 'title', 'thumbnail', 'custom-fields' ), // 'author', 'editor', 'excerpt',
+		'supports' => array( 'title', 'thumbnail' ), // 'author', 'editor', 'excerpt', , 'custom-fields'
 		'taxonomies' => array( 'sponsor_levels' ),
 		'public' => true,
 		'show_ui' => true,
 		'show_in_menu' => true,
 		'show_in_nav_menus' => false,
-		'publicly_queryable' => true,
+		'publicly_queryable' => false,
 		'exclude_from_search' => true,
 		'has_archive' => false,
 		'query_var' => true,
@@ -113,7 +113,19 @@ function register_cpt_sponsor() {
 	);
 	register_post_type( 'contact', $args );	
 
+	new dm_sponsor_meta_box();
 	new dm_contact_meta_box();
+	
+	add_image_size( 'sponsor-banner', 330, 200, false );
+
+	add_action( 'wp_head', 'dm_sponsor_enqueue_style' );
+
+	
+}
+
+function dm_sponsor_enqueue_style(){
+	wp_register_style( 'dm-sponsor-style', plugins_url( 'css/style.css', __FILE__ ) );
+	wp_enqueue_style( 'dm-sponsor-style' );
 }
 
 
@@ -158,15 +170,30 @@ class dm_contact_meta_box {
 	    );
 	    
 	    ?>
-		<p>
-	        <label for="selected_item" class="selected_item"><?php _e( 'Sponsor Organization', 'dm-sponsor' )?></label>
-	        <?php wp_dropdown_pages($static_args); ?>
-	    </p>
-	    <p>
-	        <label for="phone_number" class="prfx-row-title"><?php _e( 'Phone Number', 'dm-sponsor' )?></label>
-	        <input type="text" name="phone_number" id="phone_number" value="<?php if ( isset ( $phone_number ) ) echo $phone_number; ?>" />
-	    </p>
-	 
+	     <table class="form-table">
+		    <tbody>
+		        <tr>
+		        	<th scope="row">
+		        		<label for="selected_item" class="selected_item"><?php _e( 'Sponsor Organization', 'dm-sponsor' )?></label>
+					</th>
+					<td>
+				        <?php wp_dropdown_pages($static_args); ?>
+				        <br>
+				        <span class="description">Sponsor Company.</span>
+				    </td>
+				</tr>
+				<tr>
+		        	<th scope="row">
+		        		 <label for="phone_number" class="prfx-row-title"><?php _e( 'Phone Number', 'dm-sponsor' )?></label>
+					</th>
+					<td>
+				        <input type="tel" name="phone_number" id="phone_number" class="regular-text" value="<?php if ( isset ( $phone_number ) ) echo $phone_number; ?>" />
+				        <br>
+				        <span class="description">Contact Phone Number.</span>
+				    </td>
+				</tr>
+		    </tbody>
+		</table>
 	    <?php
 	   
 	}
@@ -187,7 +214,8 @@ class dm_contact_meta_box {
 	 
 	    // Checks for input and sanitizes/saves if needed
 	    if( isset( $_POST[ 'phone_number' ] ) ) {
-	        update_post_meta( $post_id, '_phone_number', sanitize_text_field( $_POST[ 'phone_number' ] ) );
+	    	$phone = preg_replace('/[^0-9]/', '', $_POST[ 'phone_number' ] );
+	        update_post_meta( $post_id, '_phone_number', sanitize_text_field( $phone ) );
 	    
 	    }
 	    
@@ -229,6 +257,79 @@ class dm_contact_meta_box {
 
 }
 
+// Creating the widget
+class dm_sponsor_meta_box {
+
+	function __construct() {
+		add_action( 'admin_init', array( $this, 'admin_init' ) );
+		
+		
+	}
+
+	function admin_init() {
+	    add_action( 'add_meta_boxes', array( $this, 'add_meta_boxes' ) );
+	    add_action( 'save_post', array( $this, 'save_post' ), 10);	    
+	  }
+
+	// Create the meta box
+	function add_meta_boxes() {
+	      add_meta_box(
+	          'select_item',
+	          'Enter Sponsor Details',
+	          array( $this, 'content' ),
+	          'sponsor',
+	          'normal',
+	          'high'
+	      );
+	}
+
+	// Create the meta box content
+	function content() {
+		global $post;
+		wp_nonce_field( basename( __FILE__ ), 'dm-sponsor_nonce' );
+	    $website_url = get_post_meta( $post->ID, '_website_url', true );
+	    ?>
+	    <table class="form-table">
+		    <tbody>
+		        <tr><th scope="row">
+		        <label for="website_url" class="prfx-row-title"><?php _e( 'Website URL', 'dm-sponsor' )?></label>    </th>
+		 
+		    <td>
+		        <input type="text" name="website_url" id="website_url" class="regular-text" value="<?php if ( isset ( $website_url ) ) echo $website_url; ?>" />
+		        <br>
+		        <span class="description">Sponsor Website URL.</span>
+		    </td></tr>
+		    </tbody>
+		</table>
+ 
+	    <?php
+	   
+	}
+
+	// Save the selection
+	function save_post( $post_id ) {
+	    $selected_item = null;
+	    
+	    // Checks save status
+	    $is_autosave = wp_is_post_autosave( $post_id );
+	    $is_revision = wp_is_post_revision( $post_id );
+	    $is_valid_nonce = ( isset( $_POST[ 'dm-sponsor_nonce' ] ) && wp_verify_nonce( $_POST[ 'dm-sponsor_nonce' ], basename( __FILE__ ) ) ) ? 'true' : 'false';
+	 
+	    // Exits script depending on save status
+	    if ( $is_autosave || $is_revision || !$is_valid_nonce ) {
+	        return;
+	    }
+	 
+	    // Checks for input and sanitizes/saves if needed
+	    if( isset( $_POST[ 'website_url' ] ) ) {
+	        update_post_meta( $post_id, '_website_url', sanitize_text_field( $_POST[ 'website_url' ] ) );
+	    
+	    }
+	    	    
+	}
+	
+}
+
 
 
 // Creating the widget
@@ -253,15 +354,130 @@ class dm_sponsor_widget extends WP_Widget {
 		$title = apply_filters( 'widget_title', $instance['title'] );
 		// before and after widget arguments are defined by themes
 		echo $args['before_widget'];
-		if ( ! empty( $title ) )
-			echo $args['before_title'] . 'Thank you to our '.  $title . ' Sponsors'. $args['after_title'];
-
-		// This is where you run the code and display the output
-		// echo __( 'Hello, World!', 'wpb_widget_domain' );
-		echo do_shortcode('[display-posts post_type="sponsor" taxonomy="sponsor_levels" tax_term="'.$title.'" image_size="medium" wrapper="div"]');
 		
+		$titles = array('platinum','gold','silver');
+		
+		foreach($titles as $title){
+		
+			?>
+			<div class="clearfix">
+			<?php
+		
+			if ( ! empty( $title ) ){
+				echo $args['before_title'] . 'Thank you to our '.  $title . ' Sponsors'. $args['after_title'];
+			}
+				
+	
+			// This is where you run the code and display the output
+			// echo __( 'Hello, World!', 'wpb_widget_domain' );
+			// echo do_shortcode('[display-posts post_type="sponsor" taxonomy="sponsor_levels" tax_term="'.$title.'" image_size="medium" wrapper="div"]');
+			
+			$sponsors = new WP_Query( "post_type=sponsor&taxonomy=sponsor_levels&term=$title" );
+			if ( $sponsors->have_posts() ) { 
+				while ( $sponsors->have_posts() ) { 
+					$sponsors->the_post();
+					// the_title();
+					
+					// wrapper
+					?>
+					<div class="fivecol-one <?php echo (++$x%5==0)?' last':''; ?>">
+					<?php
+					
+					if( 'platinum' == $title ){
+						// platinum					
+					
+						if ( has_post_thumbnail() ) {
+							$website_url = get_post_meta( get_the_id(), '_website_url', true );
+							echo '<a href="'.$website_url.'" target="_BLANK">';
+						    the_post_thumbnail('sponsor-banner');
+						    echo '</a>';
+						}
+						
+					}else if( 'gold' == $title ){
+						// gold
+	
+					
+						if ( has_post_thumbnail() ) {
+							$website_url = get_post_meta( get_the_id(), '_website_url', true );
+							// echo '<a href="'.$website_url.'" target="_BLANK">';
+						    the_post_thumbnail('sponsor-banner');
+						    // echo '</a>';
+						}
+						
+					}else{
+						// silver
+							$website_url = get_post_meta( get_the_id(), '_website_url', true );
+							echo '<a href="'.$website_url.'" target="_BLANK">';
+						    // the_post_thumbnail(get_the_id(), 'sponsor-banner');
+						    the_title();
+						    echo '</a>';
+						
+						
+					}
+					$contacts = new WP_Query( "post_type=contact&meta_key=_selected_item&meta_value=".get_the_id() );
+					if ( $contacts->have_posts() ) { 
+					echo '<ul>';
+					
+						while ( $contacts->have_posts() ) { 
+							$contacts->the_post();
+							$phone = get_post_meta( get_the_id(), '_phone_number', true );
+							?>
+							<li>
+								<?php the_title(); ?> &bull; <a href="tel:<?php echo $phone; ?>">
+								<?php echo $this->format_phone_number( $phone ); ?>
+								</a>
+							</li>
+							<?php
+							
+						}
+					echo '</ul>';
+					}
+					?>
+					</div>
+					<?php
+				
+					
+				}
+			}
+			wp_reset_postdata();
+
+			?>
+			</div>
+			<?php
+		
+		}
+		
+				
 		
 		echo $args['after_widget'];
+	}
+
+	public function format_phone_number($phone){
+	
+	if( 10 == strlen($phone) ){
+	
+		$phone = substr($phone,0,3).'.'.substr($phone,3,3).'.'.substr($phone,6,4);
+	
+	}else if( 11 == strlen($phone)){
+	
+		$phone = substr($phone,0,1).'.'.substr($phone,1,3).'.'.substr($phone,4,3).'.'.substr($phone,7,4);
+	
+	}else if( 11 < strlen($phone) && 1 == substr($phone,0,1) ){
+	
+		$phone = substr($phone,0,1).'.'.substr($phone,1,3).'.'.substr($phone,4,3).'.'.substr($phone,7,4).' x'.substr( $phone, 11 );
+	
+	}else if( 11 < strlen($phone) && 1 != substr($phone,0,1) ){
+	
+		$phone = substr($phone,0,3).'.'.substr($phone,3,3).'.'.substr($phone,6,4).' x'.substr($phone, 10 );
+	
+	}else{
+		// unknonw format
+		
+	}
+	
+	
+	
+	return $phone;
 	}
 
 	// Widget Backend
